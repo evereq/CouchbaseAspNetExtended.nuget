@@ -117,9 +117,14 @@ Starting from version 1.3.2 logging (using NLog) can be enabled (logging disable
       </providers>
     </sessionState>
 
-Please make sure you create 'Logs' folder in the root folder of your Web application. Logs will be stored in file 'CouchbaseSessionStateProvider.logs' in that folder.
-    
+Please make sure you create 'Logs' folder in the root folder of your Web application. Logs by default will be stored in file 'CouchbaseSessionStateProvider.logs' in that folder. If you want to change logs location, you can do following:
 
+    <add name="Couchbase" type="Couchbase.AspNet.SessionState.CouchbaseSessionStateProvider, Couchbase.AspNet" logging="true" loggingFilename="Logs/YourCouchbaseSessionStateProviderLogFile.log" /> 
+    
+If your application already uses and configure NLog and you don't want to override your application settings, use following configuration:
+
+    <add name="Couchbase" type="Couchbase.AspNet.SessionState.CouchbaseSessionStateProvider, Couchbase.AspNet" logging="true" useExistedLoggingConfig="true" /> 
+    
 Note that currently, code-based configuration of the CouchbaseClient is not supported.
 
 In code, simply use the Session object as you normally would.
