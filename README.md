@@ -192,3 +192,74 @@ or with ASP.NET WebForms
 
 [![Bitdeli Badge](https://d2weczhvl823v0.cloudfront.net/evereq/couchbaseaspnetextended.nuget/trend.png)](https://bitdeli.com/free "Bitdeli Badge")
 
+## Configuring multiple providers or direct use of Couchbase API.
+
+Current version of Couchbase providers require that each of them work with separate bucket, because each use own instance of Couchbase client and multiple clients can't work with the same bucket
+(see http://docs.couchbase.com/couchbase-sdk-net-1.3/index.html#configuring-the-net-client-library for more info)
+
+So in order to use multiple providers (say Cache and Sessions) or use one (or more) providers and direct Couchbase API, you should configure multiple buckets (e.g. "sessions", "cache", "data" etc) in the Couchbase Server and in your application config file.
+For example, in your Web.config you may have following config:
+
+    <configSections>
+     
+	 ....
+    
+		<sectionGroup name="couchbase">
+		  <section name="couchbase-sessions" type="Couchbase.Configuration.CouchbaseClientSection, Couchbase" />
+		  <section name="couchbase-cache" type="Couchbase.Configuration.CouchbaseClientSection, Couchbase" />
+		  <section name="couchbase-data" type="Couchbase.Configuration.CouchbaseClientSection, Couchbase" />
+		</sectionGroup>
+
+	 ....
+		
+    </configSections>
+
+    <couchbase>
+		<couchbase-sessions>
+		  <servers bucket="sessions" bucketPassword="">
+			<add uri="http://127.0.0.1:8091/pools" />      
+		  </servers>    
+		</couchbase-sessions>
+		<couchbase-cache>
+		  <servers bucket="cache" bucketPassword="">
+			<add uri="http://127.0.0.1:8091/pools" />      
+		  </servers>    
+		</couchbase-cache>    
+		<couchbase-data>
+		  <servers bucket="data" bucketPassword="">
+			<add uri="http://127.0.0.1:8091/pools" />      
+		  </servers>    
+		</couchbase-data>    
+    </couchbase>
+	
+	....
+	
+	<sessionState customProvider="Couchbase" mode="Custom">
+      <providers>
+        <add name="Couchbase" type="Couchbase.AspNet.SessionState.CouchbaseSessionStateProvider, Couchbase.AspNet" section="couchbase/couchbase-sessions" />        
+      </providers>
+    </sessionState>
+
+    <outputCache defaultProvider="CouchbaseCache">
+      <providers>
+        <add name="CouchbaseCache" type="Couchbase.AspNet.SessionState.CouchbaseSessionStateProvider, Couchbase.AspNet" section="couchbase/couchbase-cache" />
+      </providers>
+    </outputCache>
+	
+With this in mind, if you need to use Couchbase API to handle your application data, your manager code could be something like below (it use bucket 'data' from 'couchbase-data' section in Web.config)
+
+    /// <summary>
+    /// Manager of single Couchbase client instance for all Data operations
+    /// </summary>
+    public static class CouchbaseManager
+    {
+        private readonly static CouchbaseClient _instance;
+
+        static CouchbaseManager()
+        {
+            var cacheSection = (CouchbaseClientSection)ConfigurationManager.GetSection("couchbase/couchbase-data");
+            _instance = new CouchbaseClient(cacheSection);
+        }
+
+        public static CouchbaseClient Instance { get { return _instance; } }
+    }	
